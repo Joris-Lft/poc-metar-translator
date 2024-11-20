@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Traduction METAR</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Traduction METAR</h1>
+      <label for="metar">Entrez un METAR :</label>
+      <textarea
+        id="metar"
+        placeholder="Exemple : LFBO 201230Z 22010KT 8000 FEW040 SCT060 BKN100 18/12 Q1015"
+      ></textarea>
+      <button onclick="handleTranslation()">Traduire</button>
+      <div id="output" class="output"></div>
+    </div>
+    <footer>
+      Outil développé par
+      <a
+        href="https://github.com/Joris-Lft"
+        class="link"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Joris Lefait</a
+      >
+    </footer>
+    <script src="metarParser.js"></script>
+    <script>
+      function handleTranslation() {
+        const metarInput = document.getElementById("metar").value;
+        const outputDiv = document.getElementById("output");
+        const translated = translateMETAR(metarInput);
+
+        if (translated.trim()) {
+          outputDiv.innerHTML = translated;
+          outputDiv.style.display = "block";
+        } else {
+          outputDiv.innerHTML = "";
+          outputDiv.style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>
