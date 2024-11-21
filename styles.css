@@ -103,3 +103,29 @@ footer .link {
 footer .link:hover {
   color: #0097a7;
 }
+
+.callout {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: var(--input-bg);
+  border-left: 5px solid var(--accent-color);
+  border-radius: 5px;
+  color: var(--text-color);
+  font-size: 14px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.callout p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.callout a {
+  color: var(--accent-color);
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.callout a:hover {
+  color: #0097a7;
+}
