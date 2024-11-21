@@ -1,25 +1,42 @@
 /**
- * Translate a METAR string into plain language.
- * @param {string} metar - The raw METAR string.
- * @returns {string} - The translated METAR.
+ * Translate a METAR/TAF string into plain language.
+ * @param {string} report - The raw METAR/TAF string.
+ * @returns {string} - The translated report.
  */
-function translateMETAR(metar) {
-  if (!metar) return "Veuillez fournir une chaîne METAR.";
+function translateMETAR(report) {
+  if (!report) return "Veuillez fournir une chaîne METAR ou TAF.";
 
   try {
-    const parts = metar.trim().split(/\s+/);
+    const parts = report.trim().split(/\s+/);
     const result = [];
 
     // Decode station identifier
     const station = parts[0];
     result.push(`Station: ${station}`);
 
-    // todo: Decode observation time
-    const timeMatch = parts[1]?.match(/^(\d{2})(\d{2})(Z)$/);
+    // Decode observation or validity time
+    const timeMatch = parts.find((part) => /^\d{6}Z$/.test(part));
+    const validityMatch = parts.find((part) => /^\d{4}\/\d{4}$/.test(part));
+
     if (timeMatch) {
-      const day = timeMatch[1];
-      const hour = timeMatch[2];
-      result.push(`Observation: Jour ${day}, ${hour}h UTC`);
+      const day = timeMatch.slice(0, 2); // Jour du mois
+      const hour = timeMatch.slice(2, 4); // Heure
+      const minute = timeMatch.slice(4, 6); // Minute
+      result.push(
+        `Observation effectuée le jour ${day} à ${hour}h${minute} UTC.`
+      );
+    } else if (validityMatch) {
+      const [startDay, startHour] = [
+        validityMatch.slice(0, 2),
+        validityMatch.slice(2, 4),
+      ];
+      const [endDay, endHour] = [
+        validityMatch.slice(5, 7),
+        validityMatch.slice(7, 9),
+      ];
+      result.push(
+        `Période de validité : du jour ${startDay} à ${startHour}h00 UTC au jour ${endDay} à ${endHour}h00 UTC.`
+      );
     }
 
     // Decode wind
@@ -38,21 +55,24 @@ function translateMETAR(metar) {
       return directions[index];
     }
 
+    // Decode wind
     const windMatch = parts.find((part) =>
-      /^(\d{3})(\d{2})(G\d{2})?(KT|MPS)$/.test(part)
+      /^(VRB|\d{3})(\d{2})(G\d{2})?(KT|MPS)$/.test(part)
     );
 
     if (windMatch) {
-      const windDetails = /^(\d{3})(\d{2})(G\d{2})?(KT|MPS)$/.exec(windMatch);
+      const windDetails = /^(VRB|\d{3})(\d{2})(G\d{2})?(KT|MPS)$/.exec(
+        windMatch
+      );
 
-      const direction = windDetails[1]; // Direction (3 digits)
+      const direction = windDetails[1]; // Direction (3 digits or "VRB")
       const speed = windDetails[2]; // Speed (2 digits)
       const gusts = windDetails[3] ? windDetails[3].replace("G", "") : null; // Gusts, if present
       const unit = windDetails[4]; // Unit (KT or MPS)
 
       const directionText =
         direction === "VRB"
-          ? "variable"
+          ? "Vent variable"
           : `${getWindDirection(Number(direction))} (${direction}°)`;
 
       const speedText = unit === "KT" ? `${speed} nœuds` : `${speed} m/s`;
@@ -62,7 +82,11 @@ function translateMETAR(metar) {
           }`
         : "";
 
-      result.push(`Vent de ${directionText} à ${speedText}${gustsText}.`);
+      result.push(
+        direction === "VRB"
+          ? `${directionText} à ${speedText}${gustsText}.`
+          : `Vent de ${directionText} à ${speedText}${gustsText}.`
+      );
     }
 
     // Decode visibility
@@ -91,8 +115,6 @@ function translateMETAR(metar) {
       SQ: "Squall (Rafale violente)",
       DS: "Tempête de sable",
       SS: "Tempête de neige",
-      RAFG: "Pluie et brouillard",
-      TSSN: "Orage de neige",
     };
     const weatherPhenomena = parts.filter((part) =>
       /^[+-]?[A-Z]{2,4}(\d{3})?$/.test(part)
@@ -110,7 +132,9 @@ function translateMETAR(metar) {
         })
         .filter((item) => !!item)
         .join(", ");
-      result.push(`Phénomènes météo: ${weatherText}.`);
+      if (weatherText) {
+        result.push(`Phénomènes météo: ${weatherText}.`);
+      }
     }
 
     // Decode cloud cover
@@ -122,13 +146,11 @@ function translateMETAR(metar) {
       SCT: "Nuages épars",
       BKN: "Nuages nombreux",
       OVC: "Ciel couvert",
-      CLR: "Ciel clair",
-      NSC: "Pas de nuage particulier",
     };
 
     cloudCover.forEach((cloud) => {
       const type = cloud.slice(0, 3);
-      const altitude = parseInt(cloud.slice(3), 10) * 100; // Convert alt in feet
+      const altitude = parseInt(cloud.slice(3), 10) * 100;
       if (cloudDescriptions[type]) {
         result.push(`${cloudDescriptions[type]} à ${altitude} ft`);
       }
@@ -152,9 +174,19 @@ function translateMETAR(metar) {
       result.push(`Pression atmosphérique: ${altimeter.slice(1)} hPa`);
     }
 
+    // Decode TAF-specific changes
+    const tafChanges = parts.filter((part) => /^(FM|BECMG)\d{6}$/.test(part));
+    tafChanges.forEach((change) => {
+      const type = change.startsWith("FM") ? "À partir de" : "Évolution vers";
+      const day = change.slice(2, 4);
+      const hour = change.slice(4, 6);
+      const minute = change.slice(6, 8);
+      result.push(`${type} le jour ${day} à ${hour}h${minute} UTC.`);
+    });
+
     return result.join("<br>");
   } catch (error) {
     console.error(error);
-    return "Une erreur s'est produite lors de l'analyse du METAR.";
+    return "Une erreur s'est produite lors de l'analyse du METAR/TAF.";
   }
 }
