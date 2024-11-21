@@ -8,6 +8,7 @@ const SEGMENT_TYPES = {
   CLOUDS: "Clouds",
   TEMP_DEW: "TempDew",
   PRESSURE: "Pressure",
+  TEMPO: "Temporary",
   UNKNOWN: "Unknown",
 };
 
@@ -21,6 +22,7 @@ const matchers = [
   { type: SEGMENT_TYPES.TEMP_DEW, regex: /^M?\d{2}\/M?\d{2}$/ },
   { type: SEGMENT_TYPES.PRESSURE, regex: /^Q\d{4}$/ },
   { type: SEGMENT_TYPES.STATION, regex: /^[A-Z]{4}$/ },
+  { type: SEGMENT_TYPES.TEMPO, regex: /^[A-Z]{5}$/ },
 ];
 
 // Detect segment type
@@ -68,6 +70,8 @@ function processSegment(segment) {
       return `Pression atmosphérique: ${segment.raw.slice(1)} hPa.`;
     case SEGMENT_TYPES.STATION:
       return `Station: ${segment.raw}`;
+    case SEGMENT_TYPES.TEMPO:
+      return `${segment.raw} sur 2h`;
     default:
       return `Non identifié: ${segment.raw}`;
   }
@@ -113,9 +117,11 @@ function processWeather(raw) {
     RA: "Pluie",
     SHRA: "Averse de pluie légère",
     FZRA: "Pluie verglaçante",
+    DZRA: "Bruine avec pluie",
     SN: "Neige",
     GR: "Grêle",
     FG: "Brouillard",
+    DZ: "Bruine",
     HZ: "Haze (Brume)",
     BR: "Brume légère",
   };
